@@ -1,16 +1,24 @@
+use dwmanager::lib::{Directory, Download, read_file};
 use url::Url;
-#[derive(Debug)]
-struct Download {
-    url: Url,
-    extension: String,
-    directory_for_save: String,
+#[tokio::main]
+async fn main() {
+    start().await;
+
 }
-#[derive(Debug)]
-enum Directory{
-    Default(String),
-    Custom(String)
-}
-fn main() {
-    println!("Hello, world!");
-    
+async fn start(){
+    let url = Url::parse(
+        "https://yastat.net/s3/rasp/s/morda-front/_/images/hotelBanner/bannerDesktop.jpg",
+    );
+    let extension = ".png".to_string();
+    let directory = Directory::Default;
+    match url {
+        Err(err) => {
+            panic!("{}", err.to_string())
+        }
+        Ok(url) => {
+            let manager = Download::new(url, extension, directory).unwrap();
+
+        }
+    }
+    let urls = read_file("./urls.txt".to_string()).await;
 }
