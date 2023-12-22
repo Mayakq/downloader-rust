@@ -1,14 +1,13 @@
 pub mod lib {
 
     use core::panic;
-    use std::{fmt::Write, fs::File};
+    use std::fs::File;
 
-    use futures::{Stream, StreamExt};
-    use tokio::fs;
+    use futures::StreamExt;
     use url::Url;
     #[derive(Debug)]
     pub struct Download {
-        pub url: Url,
+        pub url: Vec<Url>,
         pub extension: String,
         pub directory_for_save: Directory,
     }
@@ -20,7 +19,7 @@ pub mod lib {
     }
 
     impl Download {
-        pub fn new(url: Url, extension: String, directory: Directory) -> Option<Self> {
+        pub fn new(url: Vec<Url>, extension: String, directory: Directory) -> Option<Self> {
             Some(Self {
                 url,
                 extension,
@@ -29,13 +28,15 @@ pub mod lib {
         }
         pub async fn download(&self) {
             let client = reqwest::Client::new();
-            let response = client.get(self.url.as_str()).send().await.unwrap();
-            let length = response.content_length().unwrap(); // todo(PROGRESS BAR)
-            let mut stream = response.bytes_stream();
-            let mut file = File::create("./data.jpg").unwrap();
-            while let Some(chunk) = stream.next().await {
-                let item = chunk.unwrap();
-                std::io::Write::write_all(&mut file, &item).unwrap();
+            for url in &self.url {
+                let response = client.get(url.to_string()).send().await.unwrap();
+                let length = response.content_length().unwrap(); // todo(PROGRESS BAR)
+                let mut stream = response.bytes_stream();
+                let mut file = File::create("./data.jpg").unwrap();
+                while let Some(chunk) = stream.next().await {
+                    let item = chunk.unwrap();
+                    std::io::Write::write_all(&mut file, &item).unwrap();
+                }
             }
         }
     }
@@ -49,5 +50,20 @@ pub mod lib {
                 panic!("{}", err)
             }
         }
+    }
+    pub async fn get_url(array_str: String) -> Vec<Url> {
+        let mut vec = Vec::with_capacity(10);
+        for elem in array_str.split("\n") {
+            match Url::parse(elem) {
+                Ok(url) => {
+                    vec.push(url);
+                }
+                Err(error) => println!("Get error at parse urls - {}", error.to_string()),
+            }
+        }
+        if vec.len() == 0 {
+            panic!("Error parse url from file. Count parsed url = 0");
+        }
+        vec
     }
 }

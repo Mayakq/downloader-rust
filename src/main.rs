@@ -11,6 +11,8 @@ async fn start(){
     );
     let extension = ".png".to_string();
     let directory = Directory::Default;
+    let urls = read_file("./urls.txt".to_string()).await;
+    
     match url {
         Err(err) => {
             panic!("{}", err.to_string())
@@ -20,5 +22,4 @@ async fn start(){
 
         }
     }
-    let urls = read_file("./urls.txt".to_string()).await;
 }
