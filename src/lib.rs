@@ -1,11 +1,7 @@
 pub mod lib {
     use core::panic;
-    use std::{fs::File, ops::Deref, sync::Arc};
-    use std::time::Duration;
-
+    use std::fs::File;
     use futures::StreamExt;
-    use tokio::sync::Mutex;
-    use tokio::time::sleep;
     use url::Url;
 
     #[derive(Debug)]
@@ -42,14 +38,9 @@ pub mod lib {
                 counter +=1;
                 threads.push(thread);
             }
-            println!("{:?}", "Sleep 10 second");
-
-            let time = sleep(Duration::from_secs(10)).await;
-            println!("{:?}", "start new task");
             for thread in threads {
                 thread.await.unwrap();
             }
-            let time = sleep(Duration::from_secs(1000)).await;
         }
     }
 
@@ -84,7 +75,6 @@ pub mod lib {
     pub async fn write_bytes(url: Url,  mut file: File) {
         let client = reqwest::Client::new();
         let response = client.get(url.to_string()).send().await.unwrap();
-        let _length = response.content_length().unwrap(); // todo(PROGRESS BAR)
         let mut stream = response.bytes_stream();
         while let Some(chunk) = stream.next().await {
             let item = chunk.unwrap();
