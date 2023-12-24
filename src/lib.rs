@@ -1,9 +1,11 @@
 pub mod lib {
     use core::panic;
     use std::{fs::File, ops::Deref, sync::Arc};
+    use std::time::Duration;
 
     use futures::StreamExt;
     use tokio::sync::Mutex;
+    use tokio::time::sleep;
     use url::Url;
 
     #[derive(Debug)]
@@ -30,18 +32,24 @@ pub mod lib {
         }
         pub async fn download(&self) {
             let mut counter = 0;
-            let mut threads = Vec::new();
+            let mut threads = Vec::with_capacity(self.url.len());
             for url in self.url.clone() {
+                let path = format!("./{}.{}", counter, "png");
+                let file = File::create(path).unwrap();
                 let thread = tokio::spawn(async move {
-                    write_bytes(url, counter).await;
-                })
-                .await;
+                    write_bytes(url, file).await;
+                });
                 counter +=1;
                 threads.push(thread);
             }
+            println!("{:?}", "Sleep 10 second");
+
+            let time = sleep(Duration::from_secs(10)).await;
+            println!("{:?}", "start new task");
             for thread in threads {
-                thread.unwrap();
+                thread.await.unwrap();
             }
+            let time = sleep(Duration::from_secs(1000)).await;
         }
     }
 
@@ -73,13 +81,11 @@ pub mod lib {
         vec
     }
 
-    pub async fn write_bytes(url: Url, counter: u32) {
+    pub async fn write_bytes(url: Url,  mut file: File) {
         let client = reqwest::Client::new();
         let response = client.get(url.to_string()).send().await.unwrap();
         let _length = response.content_length().unwrap(); // todo(PROGRESS BAR)
         let mut stream = response.bytes_stream();
-        let path = format!("./{}.{}", counter, "png");
-        let mut file = File::create(path).unwrap();
         while let Some(chunk) = stream.next().await {
             let item = chunk.unwrap();
             std::io::Write::write_all(&mut file, &item).unwrap();
